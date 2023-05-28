@@ -41,7 +41,7 @@ START:
 
     CALL    ENCRYPT                         
     
-    CALL    ENCODE                          ; TODO - Trebuie implementata
+    ;CALL    ENCODE                          ; TODO - Trebuie implementata
     
                                             ; Mai jos se regaseste partea de
                                             ; afisare pe baza valorilor care se
@@ -86,13 +86,13 @@ SEED:
                                             ; in variabila 'x' si 'x0' continutul 
                                         ; termenului initial
 
-    ;mov     ah, 2Ch                    ; BIOS Int - Get System Time
-    ;int     21h
+    mov     ah, 2Ch                    ; BIOS Int - Get System Time
+    int     21h
                                         ; calcul 60 * (60 * ch + cl) + dh
-    mov ch, 0eh
-    mov cl, 17h
-    mov dh, 26h
-    mov dl, 4CH
+    ;mov ch, 0eh
+    ;mov cl, 17h
+    ;mov dh, 26h
+    ;mov dl, 4CH
 
     xor ax, ax
     xor bx, bx
