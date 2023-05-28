@@ -28,20 +28,16 @@ START:
     MOV     DS, AX
 
     CALL    FILE_INPUT                      ; NU MODIFICATI!
-    mov [x0], 13
-    mov [x], 13
 
-    mov [a], 104
-    mov [b], 200
-    ;CALL    SEED                            
+    CALL    SEED                            
 
-    ;CALL    compute_a
+    CALL    compute_a
 
-    ;CALL    compute_b
+    CALL    compute_b
 
     CALL    ENCRYPT                         
     
-    ;CALL    ENCODE                          ; TODO - Trebuie implementata
+    CALL    ENCODE                          ; TODO - Trebuie implementata
     
                                             ; Mai jos se regaseste partea de
                                             ; afisare pe baza valorilor care se
