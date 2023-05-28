@@ -11,27 +11,33 @@ message     DB  80 DUP(0)
 msglen      DW  ?
 padding     DB  0
 iterations  DW  0 
-x           DB  ?
-x0          DB  ?
-a           db  0
-b           db  0
+x           Dw  ?
+x0          Dw  ?
+a           dw  0
+b           dw  0
 alfabet     DB  'Bqmgp86CPe9DfNz7R1wjHIMZKGcYXiFtSU2ovJOhW4ly5EkrqsnAxubTV03a=L/d'
 firstname   DB  'Dragos'
 lenName     DB  $-firstname
 surname     DB  'Ioana'
 lenSurname  DB  $-surname
+_word       dw  0
+output_length dw 0
     .CODE
 START:
     MOV     AX, @DATA
     MOV     DS, AX
 
     CALL    FILE_INPUT                      ; NU MODIFICATI!
-    
-    CALL    SEED                            
+    mov [x0], 13
+    mov [x], 13
 
-    CALL    compute_a
+    mov [a], 104
+    mov [b], 200
+    ;CALL    SEED                            
 
-    CALL    compute_b
+    ;CALL    compute_a
+
+    ;CALL    compute_b
 
     CALL    ENCRYPT                         
     
@@ -128,8 +134,8 @@ SEED:
     div bl
     xchg ah, al
     xor ah, ah 
-    mov [x0], al                           ; calcul (60 * (60 * ch + cl) + dh) * 100 + dl mod ffh
-    mov [x], al
+    mov [x0], ax                           ; calcul (60 * (60 * ch + cl) + dh) * 100 + dl mod ffh
+    mov [x], ax
     xor al, al
     xor cx, cx
     xor dx, dx
@@ -139,7 +145,7 @@ compute_a:
     mov si, offset firstname
     mov cl, lenName
 	call sum_a
-    mov [a], al
+    mov [a], ax
     xor ax, ax
     ret
 
@@ -159,7 +165,7 @@ compute_b:
     mov si, offset surname
     mov cl, lenSurname
 	call sum_b
-    mov [b], al
+    mov [b], ax
     xor ax, ax
     ret
 
@@ -182,12 +188,13 @@ ENCRYPT:
                                             ; intrare cu termenul corespunzator din
                                             ; sirul generat, iar mai apoi sa fie generat
                                             ; si termenul urmator
+    mov ax, [x0]
     call compute_encrypt
-    xor ax, ax
-    RET
+    ret
 
 compute_encrypt:
-    mov al, [x]
+    mov [x], ax
+    mov ax, [x]
     mov ah, byte ptr [si]
     xor ah, al
     mov byte ptr [si], ah
@@ -197,25 +204,23 @@ compute_encrypt:
     ret
 
 RAND:
-
-    mov al, [x]
+    mov ax, [x]
                                             ; TODO2: Completati subrutina RAND, astfel incat
                                             ; in cadrul acesteia va fi calculat termenul
                                             ; de rang n pe baza coeficientilor a, b si a 
                                             ; termenului de rang inferior (n-1) si salvat
                                             ; in cadrul variabilei 'x'
-
-    mov bh, [a]
-    mul bh
+    mov bx, [a]
+    mul bl
+    mov bl, 0ffh
     div bl
     xchg ah, al
     xor ah, ah
-    add al, [b]
+    add ax, [b]
     div bl
     xchg ah, al
     xor ah, ah
-    mov [x], al
-    RET
+    ret
 
 ENCODE:
                                             ; TODO4: Completati subrutina ENCODE, astfel incat
@@ -223,91 +228,104 @@ ENCODE:
                                             ; sirului criptat pe baza alfabetului COD64 mentionat
                                             ; in enuntul problemei si rezultatul va fi stocat
                                             ; in cadrul variabilei encoded
+    xor ax, ax
     call compute_padding
     call compute_encode
-
     ret
 
+compute_padding:
+    mov ax, [msglen]
+    mov bl, 3
+    div bl
+    mov [padding], 3
+    sub [padding], ah
+    mov byte ptr [iterations], al
+    ret
 
 compute_encode:
     mov si, offset message
     mov di, offset encoded
-    xor ax, ax
+    mov cx, [iterations]
     call loop_encode
-
+    cmp [padding], 0
+    jnz add_padding
     ret
 
 loop_encode:
-    mov al, byte ptr [si]           ;extragem in al primul octet din sirul criptat
-    mov dl, 3h                      ;masca pentru lsb 2 biti
-    and dl, al                      ;extragem lsb 2 biti din octet
-    shr al, 2                       ;extragem msb 6 biti din octet
-    mov bx, offset alfabet          ;accesam alfabetul pentru codificare
-    add bx, ax                      ;accesam caracterul corespunzator msb 6 biti din primul caracter
-    mov ax, [bx]  
-    mov byte ptr [di], al           ;scriem caracterul codificat
-    inc di                          ;urmatorul caracter codificat scris
-    shl dl, 4                       ;shiftam cu 4 biti la stanga cei 2 biti ramasi din primul octet pentru a face loc celor 4 biti din urmatorul octet al sirului criptat
-    inc si 
-    mov al, byte ptr [si]           ;extragem urmatorul octet
-    mov dh, 0F0h                    ;masca pentru msb 4 biti din octet
-    and dh, al                      ;extragem msb 4 biti din octetul 2
-    mov ah, 15                      ;masca pentru lsb 4 biti
-    and ah, al                      ;extragem lsb 4 biti
-    shr dh, 4
-    or dl, dh                       ;compunem urmatorul cuvant de 6 biti
-    xor dh, dh                      ;curatam dh
-    mov bx, offset alfabet
-    add bx, dx
-    mov dx, [bx]
-    mov byte ptr [di], dl           ;codificam
+    mov ah, byte ptr [si]           
     inc si
+    mov al, byte ptr [si]
+    inc si
+    call case1
+    call case2
+    mov ah, al
+    mov al, byte ptr [si]
+    inc si
+    call case3
+    call case4
+    xor ax, ax                 
+    loop loop_encode 
+    mov cl, [padding] 
+    ret      
+
+add_padding:
+    mov ah, byte ptr [si]
+    inc si
+    mov al, byte ptr [si]
+    inc si
+    call case1
+    call case2
+    cmp [padding], 2
+    jz complete_padding
+    mov ah, al
+    mov al, byte ptr [si]
+    inc si
+    call case3
+    cmp [padding], 1
+    jz complete_padding
+    ret
+
+complete_padding:
+    mov bl, '+' 
+    mov byte ptr [di], bl
     inc di
-    mov al, byte ptr [si] 
-    shl ah, 2                       ;shiftam cu 2
-    mov dl, 0c0h
-    and dl, al                      ;extragem msb 2 biti
-    shl dl, 6                       ;shift 
-    or dl, ah
-    xor dh, dh
+    inc [output_length]
+    loop complete_padding
+    ret
+
+case1:
+    mov [_word], 0fc00h           ; extragem primul cuvant
+    and [_word], ax               
+    shr [_word], 10
+    call write_encoded
+    ret
+case2:
+    mov [_word], 03f0h
+    and [_word], ax
+    shr [_word], 4
+    call write_encoded
+    ret
+case3:
+    mov [_word], 0fc0h
+    and [_word], ax
+    shr [_word], 6
+    call write_encoded
+    ret
+
+case4:
+    mov [_word], 3fh
+    and [_word], ax
+    call write_encoded
+    ret
+
+write_encoded:
     mov bx, offset alfabet
+    mov dx, [_word]
     add bx, dx
     mov dx, [bx]
     mov byte ptr [di], dl
     inc di
-    shl al, 2
-    shr al, 2
-    xor ah, ah
-    mov bx, offset alfabet
-    add bx, ax
-    mov ax, [bx]
-    mov byte ptr [di], al
-    inc di
-    inc si
-    xor ax, ax
-    ; neterminat
-    ret
-
-compute_padding:
-    ; vom calcula numarul de octeti al string-ului codificat utilizand
-    ; bytes * 8 + (6 - bytes % 6) / 6, bytes = numarul de octeti al string-ului de input
-    mov cx, [msglen]
-    mov ax, cx
-    mov bl, 8
-    mul bl
-    mov dl, al
-    mov bl, 6
-    div bl
-    xchg ah, al
-    mov ah, 6
-    sub ah, al
-    mov [padding], ah
-    add dl, ah
-    xor ah, ah
-    mov al, dl 
-    div bl
-    mov byte ptr [iterations], al
-    mov cx, [iterations]
+    inc [output_length]
     ret
 
 WRITE_HEX:
@@ -400,9 +418,7 @@ WRITE:
     ADD     CX, 3
     INT     21h
 
-    MOV     AX, [iterations]
-    MOV     BX, 4
-    MUL     BX
+    MOV     AX, [output_length]
     MOV     CX, AX
     MOV     AH, 40h
     MOV     BX, [fileHandler]
