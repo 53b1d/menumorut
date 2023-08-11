@@ -1,2 +1,2 @@
 # menumorut
-programul implementează un sistem de criptare și codificare base64 a unui mesaj transmis prin intermediul unui fișier de intrare in/in.txt, rezultatul fiind scris in out/out.txt
+custom encryption and base64 encoding system for data sent via an input file in/in.txt
